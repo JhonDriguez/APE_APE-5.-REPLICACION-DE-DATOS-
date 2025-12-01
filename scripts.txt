@@ -1,0 +1,31 @@
+-------------Creación de la tabla-----------
+CREATE TABLE productos(
+id SERIAL PRIMARY KEY,
+nombre VARCHAR(100),
+stock INT
+);
+-------------Inserción de datos iniciales---------
+INSERT INTO productos(nombre, stock) VALUES('Laptop', 10),('Mouse', 50),('Tecladp', 30);
+
+-------------Creación de la función del trigger----------------
+CREATE OR REPLACE FUNCTION replicar_a_esclavo()
+returns trigger as $$
+begin
+RAISE NOTICE 'replicando: operacion % en prodcuto %',
+TG_OP, new.id;
+return new;
+end;
+$$ LANGUAGE plpgsql;
+
+-------------Creación del trigger-------------------
+CREATE TRIGGER trigger_replica 
+AFTER INSERT OR UPDATE ON productos
+FOR EACH ROW EXECUTE FUNCTION replicar_a_esclavo();
+
+-------------Inicio de una transacción con bloqueo---------------
+BEGIN; 
+LOCK TABLE productos IN SHARE MODE;
+UPDATE productos SET stock = stock -1 WHERE id = 1;
+
+-------------Actualizaciones dentro de la transacción-----------------
+UPDATE productos SET stock = stock -1 WHERE id=1;
